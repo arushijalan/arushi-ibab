@@ -51,13 +51,5 @@ done
 
 echo "Search completed."
 
-# Optionally, you can uncomment the following lines to search all directories in $PATH
-# echo "Searching directories in \$PATH..."
-# IFS=':' read -ra PATH_DIRS <<< "$PATH"
-# for dir in "${PATH_DIRS[@]}"; do
-#     echo "Searching in $dir..."
-#     search_executables "$dir"
-# done
-
 echo "To search for executables in other directories, you can modify the 'directories' array in this script."
 
