@@ -14,7 +14,13 @@ from ISLP import load_data
 
 
 def load_nci_data():
-    # Load NCI60 gene expression dataset
+    """
+    Loads the NCI60 gene expression dataset.
+
+    Returns:
+    - X (np.ndarray): Feature matrix.
+    - y (np.ndarray): Target labels.
+    """
     nci = load_data('NCI60')
     X = nci['data']
     y = nci['labels'].values.ravel()
@@ -22,26 +28,41 @@ def load_nci_data():
 
 
 def apply_pca(X, n_components=5):
-    # Standardize features
+    """
+    Applies PCA for dimensionality reduction.
+
+    Parameters:
+    - X (np.ndarray): Feature matrix.
+    - n_components (int): Number of principal components.
+
+    Returns:
+    - X_reduced (np.ndarray): Reduced feature matrix.
+    """
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    # Perform PCA
     pca = PCA(n_components=n_components)
     X_reduced = pca.fit_transform(X_scaled)
     return X_reduced
 
 
 def apply_hierarchical_clustering(X, n_clusters=5):
-    # Standardize features
+    """
+    Applies hierarchical clustering to reduce dimensionality.
+
+    Parameters:
+    - X (np.ndarray): Feature matrix.
+    - n_clusters (int): Number of feature clusters.
+
+    Returns:
+    - X_reduced (np.ndarray): Reduced feature matrix using cluster means.
+    """
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    # Perform hierarchical clustering on the transposed data (features)
     linkage_matrix = linkage(X_scaled.T, method='ward')
     cluster_labels = fcluster(linkage_matrix, n_clusters, criterion='maxclust')
 
-    # Aggregate features by cluster mean
     aggregated_features = []
     for cluster_id in range(1, n_clusters + 1):
         cluster_indices = np.where(cluster_labels == cluster_id)[0]
@@ -53,37 +74,53 @@ def apply_hierarchical_clustering(X, n_clusters=5):
 
 
 def evaluate_svm_model(X, y):
-    # Train and evaluate SVM model using accuracy
+    """
+    Trains an SVM classifier and evaluates train and test accuracy.
+
+    Parameters:
+    - X (np.ndarray): Feature matrix.
+    - y (np.ndarray): Target labels.
+
+    Returns:
+    - train_acc (float): Training accuracy.
+    - test_acc (float): Testing accuracy.
+    """
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
     model = SVC(kernel='rbf', C=1.0, gamma='scale')
-    model.fit(X, y)
-    y_pred = model.predict(X)
-    acc = accuracy_score(y, y_pred)
-    return acc
+    model.fit(X_train, y_train)
+
+    train_acc = accuracy_score(y_train, model.predict(X_train))
+    test_acc = accuracy_score(y_test, model.predict(X_test))
+
+    return train_acc, test_acc
 
 
 def main():
     # Load gene expression data
     X, y = load_nci_data()
 
-    # Reduce dimensions using PCA and evaluate
+    # PCA
     X_pca = apply_pca(X, n_components=5)
-    pca_acc = evaluate_svm_model(X_pca, y)
-    print(f"PCA-based SVM Accuracy: {pca_acc:.4f}")
+    pca_train_acc, pca_test_acc = evaluate_svm_model(X_pca, y)
+    print(f"PCA-based SVM Train Accuracy: {pca_train_acc:.4f}")
+    print(f"PCA-based SVM Test Accuracy:  {pca_test_acc:.4f}")
 
-    # Reduce dimensions using hierarchical clustering and evaluate
+    # Hierarchical Clustering
     X_hclust = apply_hierarchical_clustering(X, n_clusters=5)
-    hclust_acc = evaluate_svm_model(X_hclust, y)
-    print(f"Hierarchical Clustering-based SVM Accuracy: {hclust_acc:.4f}")
+    hclust_train_acc, hclust_test_acc = evaluate_svm_model(X_hclust, y)
+    print(f"Hierarchical Clustering-based SVM Train Accuracy: {hclust_train_acc:.4f}")
+    print(f"Hierarchical Clustering-based SVM Test Accuracy:  {hclust_test_acc:.4f}")
 
-    # Compare accuracies visually
+    # Visual comparison of test accuracy
     results_df = pd.DataFrame({
         "Method": ["PCA (5 PCs)", "Hierarchical Clustering (5 clusters)"],
-        "Accuracy": [pca_acc, hclust_acc]
+        "Test Accuracy": [pca_test_acc, hclust_test_acc]
     })
 
-    sns.barplot(data=results_df, x="Method", y="Accuracy")
+    sns.barplot(data=results_df, x="Method", y="Test Accuracy")
     plt.ylim(0, 1)
-    plt.title("SVM Classification Accuracy Comparison")
+    plt.title("SVM Classification Test Accuracy Comparison")
     plt.ylabel("Accuracy")
     plt.show()
 
